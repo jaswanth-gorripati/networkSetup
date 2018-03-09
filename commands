@@ -1,0 +1,40 @@
+
+/bin/cryptogen generate --config=./crypto-config.yaml
+
+export FABRIC_CFG_PATH=$PWD
+
+/bin/configtxgen -profile CTBSOrdererGenesis -outputBlock ./channel-artifacts/ctbs-genesis.block
+
+export CHANNEL_NAME=mychannel
+
+/bin/configtxgen -profile CTBSChannel -outputCreateChannelTx ./channel-artifacts/channel.tx -channelID $CHANNEL_NAME
+
+
+/bin/configtxgen -profile CTBSChannel -outputAnchorPeersUpdate ./channel-artifacts/ContaineragencyMSPanchors.tx -channelID $CHANNEL_NAME -asOrg ContaineragencyMSP
+
+/bin/configtxgen -profile CTBSChannel -outputAnchorPeersUpdate ./channel-artifacts/TruckagencyMSPanchors.tx -channelID $CHANNEL_NAME -asOrg TruckagencyMSP
+
+/bin/configtxgen -profile CTBSChannel -outputAnchorPeersUpdate ./channel-artifacts/RampagencyMSPanchors.tx -channelID $CHANNEL_NAME -asOrg RampagencyMSP
+
+/bin/configtxgen -profile CTBSChannel -outputAnchorPeersUpdate ./channel-artifacts/CustomersMSPanchors.tx -channelID $CHANNEL_NAME -asOrg CustomersMSP
+
+
+CHANNEL_NAME=$CHANNEL_NAME TIMEOUT=10000 docker-compose -f docker-compose-cli.yaml up -d
+
+
+CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/Containeragency.example.com/users/Admin@Containeragency.example.com/msp
+CORE_PEER_ADDRESS=peer0.Containeragency.example.com:7051
+CORE_PEER_LOCALMSPID="ContaineragencyMSP"
+CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/Containeragency.example.com/peers/peer0.Containeragency.example.com/tls/ca.crt
+
+docker exec -ti cli bash
+CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/Truckagency.example.com/users/Admin@Truckagency.example.com/msp
+
+CORE_PEER_ADDRESS=peer0.Truckagency.example.com:7051
+
+CORE_PEER_LOCALMSPID="TruckagencyMSP"
+
+CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/Truckagency.example.com/peers/peer0.Truckagency.example.com/tls/ca.crt
+
+
+peer channel create -o orderer.example.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/channel.tx --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
